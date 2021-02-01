@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with qutebrowser.  If not, see <http://www.gnu.org/licenses/>.
+# along with qutebrowser.  If not, see <https://www.gnu.org/licenses/>.
 
 """Tree library for tree-tabs.
 
@@ -47,7 +47,7 @@ render_tree(root)
 > ('└─', 'baz')
 """
 import enum
-import typing
+from typing import Optional, TypeVar, Sequence, List, Tuple, Iterable, Generic
 import itertools
 
 # For Node.render
@@ -77,8 +77,11 @@ class TraverseOrder(enum.Enum):
 
 uid_gen = itertools.count(0)
 
+# generic type of value held by Node
+T = TypeVar('T')  # pylint: disable=invalid-name
 
-class Node():
+
+class Node(Generic[T]):
     """Fundamental unit of notree library.
 
     Attributes:
@@ -92,17 +95,15 @@ class Node():
             root_node.children` will be True.
     """
 
-    sep = '/'  # type: str
-    __parent = None  # type: typing.Optional['Node']
+    sep: str = '/'
+    __parent: Optional['Node[T]'] = None
     # this is a global 'static' class attribute
 
-    PARENT_TYPE = typing.TypeVar('PARENT_TYPE')
-
     def __init__(self,
-                 value: PARENT_TYPE,
-                 parent: typing.Optional['Node'] = None,
-                 childs: typing.Sequence['Node'] = (),
-                 uid: typing.Optional[int] = None) -> None:
+                 value: T,
+                 parent: Optional['Node[T]'] = None,
+                 childs: Sequence['Node[T]'] = (),
+                 uid: Optional[int] = None) -> None:
         if uid is not None:
             self.__uid = uid
         else:
@@ -110,14 +111,13 @@ class Node():
 
         self.value = value
         # set initial values so there's no need for AttributeError checks
-        self.__parent = None  # type: typing.Optional['Node']
-        self.__children = []  # type: typing.List['Node']
+        self.__parent: Optional['Node[T]'] = None
+        self.__children: List['Node[T]'] = []
 
         # For render memoization
         self.__modified = False
         self.__set_modified()  # not the same as line above
-        self.__rendered = ()  \
-            # type: typing.Tuple[typing.Tuple[str, 'Node'], ...]
+        self.__rendered: Optional[List[Tuple[str, 'Node[T]']]] = None
 
         if parent:
             self.parent = parent  # calls setter
@@ -131,11 +131,11 @@ class Node():
         return self.__uid
 
     @property
-    def parent(self) -> typing.Optional['Node']:
+    def parent(self) -> Optional['Node[T]']:
         return self.__parent
 
     @parent.setter
-    def parent(self, value) -> None:
+    def parent(self, value: 'Node[T]') -> None:
         """Set parent property. Also adds self to value.children."""
         # pylint: disable=protected-access
         assert(value is None or isinstance(value, Node))
@@ -148,11 +148,11 @@ class Node():
         self.__set_modified()
 
     @property
-    def children(self) -> typing.Sequence['Node']:
+    def children(self) -> Sequence['Node[T]']:
         return tuple(self.__children)
 
     @children.setter
-    def children(self, value: typing.Sequence['Node']):
+    def children(self, value: Sequence['Node[T]']) -> None:
         """Set children property, preserving order.
 
         Also sets n.parent = self for n in value. Does not allow duplicates.
@@ -168,7 +168,7 @@ class Node():
         self.__set_modified()
 
     @property
-    def path(self) -> typing.List['Node']:
+    def path(self) -> List['Node[T]']:
         """Get a list of all nodes from the root node to self."""
         if self.parent is None:
             return [self]
@@ -202,7 +202,7 @@ class Node():
         for node in self.path:
             node.__modified = True  # pylint: disable=protected-access
 
-    def render(self) -> typing.Iterable[typing.Tuple[str, "Node"]]:
+    def render(self) -> List[Tuple[str, 'Node[T]']]:
         """Render a tree with ascii symbols.
 
         Tabs appear in the same order as in traverse() with TraverseOrder.PRE
@@ -212,7 +212,7 @@ class Node():
         Return: list of tuples where the first item is the symbol,
                 and the second is the node it refers to
         """
-        if not self.__modified:
+        if not self.__modified and self.__rendered is not None:
             return self.__rendered
 
         result = [('', self)]
@@ -236,11 +236,11 @@ class Node():
                 else:
                     result.append((INTERSECTION, child))
         self.__modified = False
-        self.__rendered = tuple(result)
-        return tuple(result)
+        self.__rendered = list(result)
+        return list(result)
 
     def traverse(self, order: TraverseOrder = TraverseOrder.PRE,
-                 render_collapsed: bool = True) -> typing.Iterable['Node']:
+                 render_collapsed: bool = True) -> Iterable['Node']:
         """Generator for all descendants of `self`.
 
         Args:
@@ -266,16 +266,16 @@ class Node():
         if order in [TraverseOrder.POST, TraverseOrder.POST_R]:
             yield self
 
-    def __add_child(self, node: 'Node') -> None:
+    def __add_child(self, node: 'Node[T]') -> None:
         if node not in self.__children:
             self.__children.append(node)
 
-    def __disown(self, value: 'Node') -> None:
+    def __disown(self, value: 'Node[T]') -> None:
         self.__set_modified()
         if value in self.__children:
             self.__children.remove(value)
 
-    def get_descendent_by_uid(self, uid: int) -> 'Node':
+    def get_descendent_by_uid(self, uid: int) -> 'Node[T]':
         """Return descendent identified by the provided uid.
 
         Raises an error if there is no such descendent.
@@ -345,7 +345,7 @@ class Node():
     def __repr__(self) -> str:
         try:
             value = str(self.value.url().url())  # type: ignore
-        except:
+        except Exception:
             value = str(self.value)
         return "<Node -%d- '%s'>" % (self.__uid, value)
 
