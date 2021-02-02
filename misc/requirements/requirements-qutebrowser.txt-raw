@@ -10,6 +10,7 @@ dataclasses
 Pygments  # For :view-source --pygments or on QtWebKit
 colorama  # Colored log output on Windows
 adblock  # Improved adblocking
+ignition-gemini # gemini browsing
 
 #@ markers: importlib-resources python_version<"3.9"
 #@ markers: dataclasses python_version<"3.7"
