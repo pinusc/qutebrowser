@@ -33,7 +33,8 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWebEngineWidgets import QWebEngineSettings, QWebEngineProfile
 
 from qutebrowser.browser import history
-from qutebrowser.browser.webengine import (spell, webenginequtescheme, cookies,
+from qutebrowser.browser.webengine import (spell, webenginequtescheme,
+                                           webenginegeminischeme, cookies,
                                            webenginedownloads)
 from qutebrowser.config import config, websettings
 from qutebrowser.config.websettings import AttributeInfo as Attr
@@ -475,6 +476,12 @@ def init():
     app = QApplication.instance()
     log.init.debug("Initializing qute://* handler...")
     _qute_scheme_handler = webenginequtescheme.QuteSchemeHandler(parent=app)
+
+    global _gemini_scheme_handler
+    webenginegeminischeme.init()
+    log.init.debug("Initializing gemini://* handler...")
+    _qute_scheme_handler = \
+        webenginegeminischeme.GeminiSchemeHandler(parent=app)
 
     global _req_interceptor
     log.init.debug("Initializing request interceptor...")

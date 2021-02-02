@@ -579,7 +579,6 @@ def qute_treegroup(url):
                        title=url.path()[1:])
     return 'text/html', src
 
-
 @add_handler('resource')
 def qute_resource(url: QUrl) -> _HandlerRet:
     """Handler for qute://resource."""
